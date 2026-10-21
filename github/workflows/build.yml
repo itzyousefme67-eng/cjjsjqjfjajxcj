@@ -1,0 +1,31 @@
+name: Build Silk
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Build
+        run: |
+          ZIP=$(find . -iname "*.zip" -not -path "./.git/*" | head -n 1)
+          if [ -n "$ZIP" ]; then unzip -oq "$ZIP" -d unpacked; fi
+          BUILD=$(find . -name build.gradle -not -path "./.git/*" | head -n 1)
+          cd "$(dirname "$BUILD")"
+          chmod +x gradlew
+          ./gradlew build --no-daemon --console=plain 2>&1 | grep -v "^\s*at " | tail -n 80
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: silk-jar
+          path: "**/build/libs/*.jar"
+          if-no-files-found: error
